@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morning Program Attendance Sheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="text"] {
+            width: 100%;
+            border: none;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        .reason-field {
+            display: none;
+            margin-top: 5px;
+        }
+        .reason-field input {
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #sendMessageBtn {
+            background-color: #2196F3;
+        }
+        #sendMessageBtn:hover {
+            background-color: #0b7dda;
+        }
+        #phoneNumber {
+            padding: 10px;
+            margin: 5px;
+            width: 200px;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Morning Program Attendance Sheet</h1>
+    <table id="attendanceTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Chanting</th>
+                <th>MA</th>
+                <th>SB Class</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Rows will be populated here -->
+        </tbody>
+    </table>
+    <button id="addRowBtn">Add Row</button>
+    <br><br>
+    <label for="phoneNumber">Enter 10-digit Indian Phone Number:</label>
+    <input type="text" id="phoneNumber" placeholder="e.g., 9876543210" maxlength="10">
+    <button id="sendMessageBtn">Send Message</button>
+
+    <script>
+        const tableBody = document.getElementById('tableBody');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+
+        let rowId = 0;
+
+        // Load phone number from localStorage
+        function loadPhoneNumber() {
+            const savedPhone = localStorage.getItem('savedPhoneNumber');
+            if (savedPhone) {
+                phoneNumberInput.value = savedPhone;
+            }
+        }
+
+        // Save phone number to localStorage
+        function savePhoneNumber() {
+            const phone = phoneNumberInput.value.trim();
+            if (phone) {
+                localStorage.setItem('savedPhoneNumber', phone);
+            }
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('attendanceData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                data.forEach((row) => {
+                    addRow(
+                        row.name, 
+                        row.chanting, 
+                        row.ma, 
+                        row.sb, 
+                        row.id || rowId++, 
+                        row.chantingReason || '', 
+                        row.maReason || '', 
+                        row.sbReason || ''
+                    );
+                });
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            const data = [];
+            const rows = tableBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 4) {
+                    const nameInput = cells[0].querySelector('input');
+                    const chantingSelect = cells[1].querySelector('select');
+                    const chantingReasonInput = cells[1].querySelector('.reason-field input');
+                    const maSelect = cells[2].querySelector('select');
+                    const maReasonInput = cells[2].querySelector('.reason-field input');
+                    const sbSelect = cells[3].querySelector('select');
+                    const sbReasonInput = cells[3].querySelector('.reason-field input');
+                    
+                    const rowData = {
+                        id: parseInt(row.dataset.rowId),
+                        name: nameInput.value,
+                        chanting: chantingSelect.value,
+                        chantingReason: chantingReasonInput ? chantingReasonInput.value : '',
+                        ma: maSelect.value,
+                        maReason: maReasonInput ? maReasonInput.value : '',
+                        sb: sbSelect.value,
+                        sbReason: sbReasonInput ? sbReasonInput.value : ''
+                    };
+                    data.push(rowData);
+                }
+            });
+            localStorage.setItem('attendanceData', JSON.stringify(data));
+        }
+
+        // Toggle reason field visibility
+        function toggleReasonField(selectElement, reasonField) {
+            const isAbsentOrLate = selectElement.value === 'Absent' || selectElement.value === 'Late';
+            if (isAbsentOrLate) {
+                reasonField.style.display = 'block';
+            } else {
+                reasonField.style.display = 'none';
+                const reasonInput = reasonField.querySelector('input');
+                if (reasonInput) {
+                    reasonInput.value = '';
+                }
+                saveData();
+            }
+        }
+
+        // Add a new row
+        function addRow(name = '', chanting = 'Present', ma = 'Present', sb = 'Present', id = null, chantingReason = '', maReason = '', sbReason = '') {
+            const row = document.createElement('tr');
+            row.dataset.rowId = id !== null ? id : rowId++;
+            
+            // Name cell
+            const nameCell = document.createElement('td');
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = name;
+            nameInput.onblur = saveData;
+            nameCell.appendChild(nameInput);
+            
+            // Chanting cell
+            const chantingCell = document.createElement('td');
+            const chantingSelect = document.createElement('select');
+            chantingSelect.innerHTML = '<option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option>';
+            chantingSelect.value = chanting;
+            chantingSelect.onchange = () => {
+                toggleReasonField(chantingSelect, chantingReasonField);
+                saveData();
+            };
+            
+            const chantingReasonField = document.createElement('div');
+            chantingReasonField.className = 'reason-field';
+            const chantingReasonInput = document.createElement('input');
+            chantingReasonInput.type = 'text';
+            chantingReasonInput.placeholder = 'Reason for absent/late (optional)';
+            chantingReasonInput.value = chantingReason;
+            chantingReasonInput.onblur = saveData;
+            chantingReasonField.appendChild(chantingReasonInput);
+            
+            chantingCell.appendChild(chantingSelect);
+            chantingCell.appendChild(chantingReasonField);
+            toggleReasonField(chantingSelect, chantingReasonField);
+            
+            // MA cell
+            const maCell = document.createElement('td');
+            const maSelect = document.createElement('select');
+            maSelect.innerHTML = '<option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option>';
+            maSelect.value = ma;
+            maSelect.onchange = () => {
+                toggleReasonField(maSelect, maReasonField);
+                saveData();
+            };
+            
+            const maReasonField = document.createElement('div');
+            maReasonField.className = 'reason-field';
+            const maReasonInput = document.createElement('input');
+            maReasonInput.type = 'text';
+            maReasonInput.placeholder = 'Reason for absent/late (optional)';
+            maReasonInput.value = maReason;
+            maReasonInput.onblur = saveData;
+            maReasonField.appendChild(maReasonInput);
+            
+            maCell.appendChild(maSelect);
+            maCell.appendChild(maReasonField);
+            toggleReasonField(maSelect, maReasonField);
+            
+            // SB cell
+            const sbCell = document.createElement('td');
+            const sbSelect = document.createElement('select');
+            sbSelect.innerHTML = '<option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option>';
+            sbSelect.value = sb;
+            sbSelect.onchange = () => {
+                toggleReasonField(sbSelect, sbReasonField);
+                saveData();
+            };
+            
+            const sbReasonField = document.createElement('div');
+            sbReasonField.className = 'reason-field';
+            const sbReasonInput = document.createElement('input');
+            sbReasonInput.type = 'text';
+            sbReasonInput.placeholder = 'Reason for absent/late (optional)';
+            sbReasonInput.value = sbReason;
+            sbReasonInput.onblur = saveData;
+            sbReasonField.appendChild(sbReasonInput);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => {
+                row.remove();
+                saveData();
+            };
+            
+            sbCell.appendChild(sbSelect);
+            sbCell.appendChild(sbReasonField);
+            sbCell.appendChild(deleteBtn);
+            toggleReasonField(sbSelect, sbReasonField);
+            
+            row.appendChild(nameCell);
+            row.appendChild(chantingCell);
+            row.appendChild(maCell);
+            row.appendChild(sbCell);
+            
+            tableBody.appendChild(row);
+        }
+
+        // Generate message content
+        function generateMessage() {
+            let message = "Today's full morning program attendance - \n";
+            message += "Name - Chanting, MA, SB class\n\n";
+            
+            const rows = tableBody.querySelectorAll('tr');
+            let hasData = false;
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 4) {
+                    const nameInput = cells[0].querySelector('input');
+                    const chantingSelect = cells[1].querySelector('select');
+                    const chantingReasonInput = cells[1].querySelector('.reason-field input');
+                    const maSelect = cells[2].querySelector('select');
+                    const maReasonInput = cells[2].querySelector('.reason-field input');
+                    const sbSelect = cells[3].querySelector('select');
+                    const sbReasonInput = cells[3].querySelector('.reason-field input');
+                    
+                    const name = nameInput.value.trim();
+                    if (name) {
+                        let chantingStatus = chantingSelect.value === 'Present' ? 'P' : chantingSelect.value === 'Absent' ? 'A' : 'L';
+                        const chantingReason = chantingReasonInput ? chantingReasonInput.value.trim() : '';
+                        if ((chantingStatus === 'A' || chantingStatus === 'L') && chantingReason) {
+                            chantingStatus += ` (${chantingReason})`;
+                        }
+                        
+                        let maStatus = maSelect.value === 'Present' ? 'P' : maSelect.value === 'Absent' ? 'A' : 'L';
+                        const maReason = maReasonInput ? maReasonInput.value.trim() : '';
+                        if ((maStatus === 'A' || maStatus === 'L') && maReason) {
+                            maStatus += ` (${maReason})`;
+                        }
+                        
+                        let sbStatus = sbSelect.value === 'Present' ? 'P' : sbSelect.value === 'Absent' ? 'A' : 'L';
+                        const sbReason = sbReasonInput ? sbReasonInput.value.trim() : '';
+                        if ((sbStatus === 'A' || sbStatus === 'L') && sbReason) {
+                            sbStatus += ` (${sbReason})`;
+                        }
+                        
+                        message += `${name} - ${chantingStatus}, ${maStatus}, ${sbStatus}\n`;
+                        hasData = true;
+                    }
+                }
+            });
+            
+            if (!hasData) {
+                message += "No attendance data recorded.";
+            }
+            
+            return message;
+        }
+
+        // Send SMS
+        function sendSMS() {
+            const phone = phoneNumberInput.value.trim();
+            if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+                alert('Please enter a valid 10-digit Indian phone number.');
+                return;
+            }
+            
+            const message = generateMessage();
+            const encodedMessage = encodeURIComponent(message);
+            const smsUrl = `sms:+91${phone}?body=${encodedMessage}`;
+            window.open(smsUrl, '_blank');
+        }
+
+        // Event listeners
+        addRowBtn.onclick = () => {
+            addRow();
+        };
+        
+        sendMessageBtn.onclick = sendSMS;
+
+        // Load data and phone number on page load
+        loadData();
+        loadPhoneNumber();
+
+        // Save phone number on blur
+        phoneNumberInput.onblur = savePhoneNumber;
+    </script>
+</body>
+</html>
